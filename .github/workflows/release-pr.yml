@@ -75,8 +75,7 @@ jobs:
           fi
 
           CHANGES=$(gh pr list --state merged --base main --limit 100 \
-            --json number,title,headRefName,mergedAt \
-            --jq --arg since "$TAG_DATE" '
+            --json number,title,headRefName,mergedAt | jq -r --arg since "$TAG_DATE" '
               [.[]
                 | select(.headRefName | startswith("release/v") | not)
                 | select(.mergedAt > $since)
