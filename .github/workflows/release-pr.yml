@@ -12,7 +12,8 @@ jobs:
   release-pr:
     if: >-
       ${{ !startsWith(github.event.head_commit.message, 'chore: release v') &&
-          !startsWith(github.event.head_commit.message, 'Release v') }}
+          !startsWith(github.event.head_commit.message, 'Release v') &&
+          !contains(github.event.head_commit.message, 'release/v') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
