@@ -15,6 +15,7 @@ env:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment: dev
     steps:
       - uses: actions/checkout@v4
 
@@ -36,6 +37,12 @@ jobs:
 
       - name: Deploy to dev Lambda
         run: |
-          aws lambda update-function-code \
-            --function-name "${{ vars.LAMBDA_FUNCTION_NAME || env.LAMBDA_FUNCTION_NAME }}" \
+          pip install boto3
+          ARGS=(
+            --function-name "${{ vars.LAMBDA_FUNCTION_NAME || env.LAMBDA_FUNCTION_NAME }}"
             --image-uri "${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
+          )
+          if [ -n "${{ vars.LAMBDA_CONFIG_SECRET }}" ]; then
+            ARGS+=(--secret-id "${{ vars.LAMBDA_CONFIG_SECRET }}")
+          fi
+          python .github/scripts/deploy_lambda.py "${ARGS[@]}"
