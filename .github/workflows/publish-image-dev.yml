@@ -1,42 +1,23 @@
-name: Publish Lambda Image
+name: Publish Lambda Image (Dev)
 
 on:
   push:
-    branches: [main]
+    branches: [dev]
   workflow_dispatch:
 
 permissions:
-  contents: write
   id-token: write
 
 env:
   ECR_REPOSITORY: model-api
-  LAMBDA_FUNCTION_NAME: threecricket-live-model-api
+  LAMBDA_FUNCTION_NAME: threecricket-dev-model-api
 
 jobs:
   publish:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      contains(github.event.head_commit.message, 'release/v') ||
-      startsWith(github.event.head_commit.message, 'chore: release v') ||
-      startsWith(github.event.head_commit.message, 'Release v')
     runs-on: ubuntu-latest
-    environment: live
+    environment: dev
     steps:
       - uses: actions/checkout@v4
-
-      - name: Read version
-        id: version
-        run: |
-          pip install uv
-          echo "version=$(uv version --short)" >> "$GITHUB_OUTPUT"
-
-      - name: Tag release
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag "v${{ steps.version.outputs.version }}"
-          git push origin "v${{ steps.version.outputs.version }}"
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -51,11 +32,10 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.version.outputs.version }}
-            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:dev
             ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
 
-      - name: Deploy to live Lambda
+      - name: Deploy to dev Lambda
         run: |
           pip install boto3
           ARGS=(
