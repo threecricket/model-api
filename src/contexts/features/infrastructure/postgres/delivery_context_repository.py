@@ -60,6 +60,9 @@ class DeliveryContextRepository:
         if training_filter.match_ids:
             stmt = stmt.where(Match.id.in_(training_filter.match_ids))
 
+        if training_filter.innings:
+            stmt = stmt.where(Inning.inning_number.in_(training_filter.innings))
+
         return stmt
 
     @staticmethod
