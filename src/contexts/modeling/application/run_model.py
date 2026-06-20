@@ -49,6 +49,9 @@ class RunModelUseCase:
             return FilterKey(command.filter_key)
         return FilterKey.from_filters(command.filters)
 
+    def invalidate_cache(self, ref: TrainedModelRef) -> None:
+        self._artifact_cache.pop((ref.model_name, ref.filter_key.value), None)
+
     def _load_artifact(self, ref: TrainedModelRef, model_type: str):
         cache_key = (ref.model_name, ref.filter_key.value)
         cached = self._artifact_cache.get(cache_key)
