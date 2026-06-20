@@ -11,6 +11,7 @@ permissions:
 
 env:
   ECR_REPOSITORY: model-api
+  LAMBDA_FUNCTION_NAME: threecricket-live-model-api
 
 jobs:
   publish:
@@ -52,3 +53,9 @@ jobs:
             ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.version.outputs.version }}
             ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
             ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+      - name: Deploy to live Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name "${{ vars.LAMBDA_FUNCTION_NAME || env.LAMBDA_FUNCTION_NAME }}" \
+            --image-uri "${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
