@@ -1,0 +1,17 @@
+models:
+  - name: batting_team_win_probability
+    model_type: sklearn.logistic_regression
+    features:
+      - current_innings_runs
+      - current_innings_wickets
+      - current_innings_legal_ball_no
+      - current_innings_legal_balls_remaining
+      - current_innings_target
+      - current_innings_runs_required
+      - striker_current_runs
+      - striker_current_balls_faced
+      - bowler_current_runs
+      - bowler_current_balls_bowled
+      - bowler_current_wickets
+    target_features:
+      - batting_team_won
