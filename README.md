@@ -6,7 +6,7 @@ FastAPI service for cricket model training and inference. Reads match data from 
 
 ```bash
 cp .env.example .env
-# Edit .env with your DATABASE_URL and AWS credentials
+# Edit .env with your DATABASE_URL and AWS credentials (or AWS_ROLE_ARN for STS assume-role)
 
 uv sync --group dev
 ```

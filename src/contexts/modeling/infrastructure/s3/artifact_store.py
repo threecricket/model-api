@@ -108,6 +108,25 @@ class S3ArtifactStore:
 
     @staticmethod
     def _create_client(settings: Settings):
+        if settings.aws_role_arn:
+            session = boto3.Session(
+                region_name=settings.aws_region,
+                aws_access_key_id=settings.aws_access_key_id,
+                aws_secret_access_key=settings.aws_secret_access_key,
+            )
+            assumed = session.client("sts").assume_role(
+                RoleArn=settings.aws_role_arn,
+                RoleSessionName="model-api",
+            )
+            credentials = assumed["Credentials"]
+            return boto3.client(
+                "s3",
+                region_name=settings.aws_region,
+                aws_access_key_id=credentials["AccessKeyId"],
+                aws_secret_access_key=credentials["SecretAccessKey"],
+                aws_session_token=credentials["SessionToken"],
+            )
+
         kwargs: dict = {"region_name": settings.aws_region}
         if settings.aws_access_key_id and settings.aws_secret_access_key:
             kwargs["aws_access_key_id"] = settings.aws_access_key_id

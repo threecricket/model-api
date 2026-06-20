@@ -17,7 +17,9 @@ class TrainingFilter:
             return cls()
 
         raw_format = filters.get("format")
-        format_values = tuple(sorted(set(raw_format))) if raw_format else None
+        format_values = (
+            tuple(sorted(set(str(value).lower() for value in raw_format))) if raw_format else None
+        )
 
         raw_match_ids = filters.get("match_ids")
         match_ids = tuple(uuid.UUID(str(value)) for value in raw_match_ids) if raw_match_ids else None

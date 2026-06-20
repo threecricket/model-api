@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     s3_bucket: str = ""
     s3_prefix: str = "models"
     aws_region: str = "us-east-1"
+    aws_role_arn: str | None = None
     aws_access_key_id: str | None = None
     aws_secret_access_key: str | None = None
 

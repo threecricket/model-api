@@ -10,6 +10,10 @@ class Base(DeclarativeBase):
     pass
 
 
+def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
+    return [member.value for member in enum_cls]
+
+
 class MatchFormat(str, enum.Enum):
     TEST = "test"
     ODI = "odi"
@@ -44,12 +48,22 @@ class Match(Base):
     start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     result_type: Mapped[ResultType] = mapped_column(
-        Enum(ResultType, name="result_type", create_type=False),
+        Enum(
+            ResultType,
+            name="result_type",
+            create_type=False,
+            values_callable=_enum_values,
+        ),
         nullable=False,
     )
     subject_team_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     format: Mapped[MatchFormat] = mapped_column(
-        Enum(MatchFormat, name="match_format", create_type=False),
+        Enum(
+            MatchFormat,
+            name="match_format",
+            create_type=False,
+            values_callable=_enum_values,
+        ),
         nullable=False,
     )
 
@@ -102,6 +116,11 @@ class Ball(Base):
     result_no_ball: Mapped[int] = mapped_column(Integer, nullable=False)
     player_out_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     wicket_type: Mapped[WicketType | None] = mapped_column(
-        Enum(WicketType, name="wicket_type", create_type=False),
+        Enum(
+            WicketType,
+            name="wicket_type",
+            create_type=False,
+            values_callable=_enum_values,
+        ),
         nullable=True,
     )
