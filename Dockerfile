@@ -19,4 +19,6 @@ COPY src/ ${LAMBDA_TASK_ROOT}/
 
 ENV PYTHONPATH=${LAMBDA_TASK_ROOT}
 
+# AWS managed base images default to a Lambda handler entrypoint; LWA runs uvicorn instead.
+ENTRYPOINT []
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
