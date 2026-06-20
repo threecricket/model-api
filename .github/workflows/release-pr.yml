@@ -1,0 +1,96 @@
+name: Release PR
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-pr:
+    if: >-
+      ${{ !startsWith(github.event.head_commit.message, 'chore: release v') &&
+          !startsWith(github.event.head_commit.message, 'Release v') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Compute next version
+        id: version
+        run: |
+          cp pyproject.toml pyproject.toml.bak
+          uv version --bump patch
+          echo "next=$(uv version --short)" >> "$GITHUB_OUTPUT"
+          mv pyproject.toml.bak pyproject.toml
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Find existing release PR
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR=$(gh pr list --state open --base main --label release --json number,headRefName --jq '.[0] // empty')
+          if [ -n "$PR" ]; then
+            echo "number=$(echo "$PR" | jq -r '.number')" >> "$GITHUB_OUTPUT"
+            echo "branch=$(echo "$PR" | jq -r '.headRefName')" >> "$GITHUB_OUTPUT"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update existing release PR
+        if: steps.existing.outputs.exists == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch origin "${{ steps.existing.outputs.branch }}"
+          git checkout "${{ steps.existing.outputs.branch }}"
+          set +e
+          git merge origin/main -m "chore: merge main into release branch"
+          MERGE_STATUS=$?
+          set -e
+          if [ "$MERGE_STATUS" -ne 0 ]; then
+            if git diff --name-only --diff-filter=U | grep -q '^pyproject.toml$'; then
+              git checkout --ours pyproject.toml
+              git add pyproject.toml
+              if [ -n "$(git diff --name-only --diff-filter=U)" ]; then
+                echo "Unresolved merge conflicts remain"
+                exit 1
+              fi
+              git commit -m "chore: merge main into release branch"
+            else
+              echo "Merge failed"
+              exit 1
+            fi
+          fi
+          git push origin "${{ steps.existing.outputs.branch }}"
+
+      - name: Create release PR
+        if: steps.existing.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.next }}
+        run: |
+          BRANCH="release/v${VERSION}"
+          git checkout -b "$BRANCH"
+          uv version --bump patch
+          git add pyproject.toml
+          git commit -m "chore: release v${VERSION}"
+          git push -u origin "$BRANCH"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Release v${VERSION}" \
+            --label release \
+            --body "Merge to publish Docker image to ECR."
