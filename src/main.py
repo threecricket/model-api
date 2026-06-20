@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from api.routers.health import router as health_router
 from bootstrap.settings import Settings, get_settings
+from contexts.features.domain.registry.feature_registry import FeatureRegistry
 from shared.persistence.postgres.engine import create_db_engine, create_session_factory
 
 
@@ -15,9 +16,12 @@ async def lifespan(app: FastAPI):
     engine = create_db_engine(settings.database_url)
     session_factory = create_session_factory(engine)
 
+    feature_registry = FeatureRegistry.create_default()
+
     app.state.settings = settings
     app.state.engine = engine
     app.state.session_factory = session_factory
+    app.state.feature_registry = feature_registry
 
     yield
 
@@ -43,3 +47,7 @@ def get_app_engine(app: FastAPI) -> Engine:
 
 def get_app_session_factory(app: FastAPI) -> sessionmaker[Session]:
     return app.state.session_factory
+
+
+def get_app_feature_registry(app: FastAPI) -> FeatureRegistry:
+    return app.state.feature_registry
