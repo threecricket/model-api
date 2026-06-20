@@ -20,6 +20,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch tags
+        run: git fetch --tags
+
       - name: Install uv
         run: pip install uv
 
@@ -51,6 +54,57 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Build release notes
+        id: notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ steps.existing.outputs.exists }}" = "true" ]; then
+            VERSION="${{ steps.existing.outputs.branch }}"
+            VERSION="${VERSION#release/v}"
+          else
+            VERSION="${{ steps.version.outputs.next }}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+          LAST_TAG=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          if [ -n "$LAST_TAG" ]; then
+            TAG_DATE=$(git log -1 --format=%cI "$LAST_TAG")
+          else
+            TAG_DATE="1970-01-01T00:00:00Z"
+          fi
+
+          CHANGES=$(gh pr list --state merged --base main --limit 100 \
+            --json number,title,headRefName,mergedAt \
+            --jq --arg since "$TAG_DATE" '
+              [.[]
+                | select(.headRefName | startswith("release/v") | not)
+                | select(.mergedAt > $since)
+              ]
+              | sort_by(.mergedAt)
+              | .[]
+              | "- \(.title) (#\(.number))"
+            ')
+
+          if [ -z "$CHANGES" ] && [ -n "$LAST_TAG" ]; then
+            CHANGES=$(git log "${LAST_TAG}..origin/main" --pretty=format:'- %s' --no-merges)
+          elif [ -z "$CHANGES" ]; then
+            CHANGES=$(git log origin/main --pretty=format:'- %s' --no-merges -20)
+          fi
+
+          if [ -z "$CHANGES" ]; then
+            CHANGES="- No changes"
+          fi
+
+          BODY_FILE="${RUNNER_TEMP}/release-body.md"
+          {
+            printf '%s\n\n' "## Release v${VERSION}"
+            printf '%s\n\n' "Merge to publish Docker image to ECR."
+            printf '%s\n\n' "### Changes"
+            printf '%s\n' "$CHANGES"
+          } > "$BODY_FILE"
+          echo "body_file=${BODY_FILE}" >> "$GITHUB_OUTPUT"
+
       - name: Update existing release PR
         if: steps.existing.outputs.exists == 'true'
         env:
@@ -77,12 +131,14 @@ jobs:
             fi
           fi
           git push origin "${{ steps.existing.outputs.branch }}"
+          gh pr edit "${{ steps.existing.outputs.number }}" \
+            --body-file "${{ steps.notes.outputs.body_file }}"
 
       - name: Create release PR
         if: steps.existing.outputs.exists != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.next }}
+          VERSION: ${{ steps.notes.outputs.version }}
         run: |
           BRANCH="release/v${VERSION}"
           if git ls-remote --exit-code origin "refs/heads/${BRANCH}" >/dev/null 2>&1; then
@@ -99,4 +155,4 @@ jobs:
             --base main \
             --head "$BRANCH" \
             --title "Release v${VERSION}" \
-            --body "Merge to publish Docker image to ECR."
+            --body-file "${{ steps.notes.outputs.body_file }}"
