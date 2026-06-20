@@ -144,3 +144,5 @@ Returns 404 if no artifact exists for the `(model, filter_key)` pair — use `GE
 | `batting_team_win_probability` | `sklearn.logistic_regression` | `batting_team_won` |
 
 Features are computed from pre-delivery cumulative ball state (runs, wickets, batter/bowler stats, innings target). The `batting_team_won` label is `1.0` when the batting team is the match winner; ties and no-results are `0.0`.
+
+End
