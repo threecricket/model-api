@@ -40,7 +40,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          PR=$(gh pr list --state open --base main --label release --json number,headRefName --jq '.[0] // empty')
+          PR=$(gh pr list --state open --base main --json number,headRefName \
+            --jq '[.[] | select(.headRefName | startswith("release/v"))][0] // empty')
           if [ -n "$PR" ]; then
             echo "number=$(echo "$PR" | jq -r '.number')" >> "$GITHUB_OUTPUT"
             echo "branch=$(echo "$PR" | jq -r '.headRefName')" >> "$GITHUB_OUTPUT"
@@ -83,14 +84,18 @@ jobs:
           VERSION: ${{ steps.version.outputs.next }}
         run: |
           BRANCH="release/v${VERSION}"
-          git checkout -b "$BRANCH"
-          uv version --bump patch
-          git add pyproject.toml
-          git commit -m "chore: release v${VERSION}"
-          git push -u origin "$BRANCH"
+          if git ls-remote --exit-code origin "refs/heads/${BRANCH}" >/dev/null 2>&1; then
+            git fetch origin "$BRANCH"
+            git checkout "$BRANCH"
+          else
+            git checkout -b "$BRANCH"
+            uv version --bump patch
+            git add pyproject.toml
+            git commit -m "chore: release v${VERSION}"
+            git push -u origin "$BRANCH"
+          fi
           gh pr create \
             --base main \
             --head "$BRANCH" \
             --title "Release v${VERSION}" \
-            --label release \
             --body "Merge to publish Docker image to ECR."
