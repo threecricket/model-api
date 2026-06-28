@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     )
 
     database_url: str
+    db_schema: str = "public"
+    artifact_store: str = "s3"
+    local_models_dir: str = "models_store"
     s3_bucket: str = ""
     s3_prefix: str = "models"
     aws_region: str = "us-east-1"

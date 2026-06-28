@@ -13,8 +13,10 @@ from contexts.features.infrastructure.postgres.delivery_context_repository impor
 from contexts.modeling.application.list_trained_models import ListTrainedModelsUseCase
 from contexts.modeling.application.run_model import RunModelUseCase
 from contexts.modeling.application.train_model import TrainModelUseCase
+from contexts.modeling.domain.ports.artifact_store import ArtifactStore
 from contexts.modeling.domain.registry.model_definition_registry import ModelDefinitionRegistry
 from contexts.modeling.domain.registry.trainer_registry import TrainerRegistry
+from contexts.modeling.infrastructure.local.artifact_store import LocalArtifactStore
 from contexts.modeling.infrastructure.s3.artifact_store import S3ArtifactStore
 
 
@@ -25,7 +27,7 @@ class AppDependencies:
     feature_registry: FeatureRegistry
     model_definition_registry: ModelDefinitionRegistry
     trainer_registry: TrainerRegistry
-    artifact_store: S3ArtifactStore
+    artifact_store: ArtifactStore
     run_model_use_case: RunModelUseCase
     list_trained_models_use_case: ListTrainedModelsUseCase
 
@@ -50,7 +52,11 @@ def create_dependencies(
     model_definition_registry: ModelDefinitionRegistry,
     trainer_registry: TrainerRegistry,
 ) -> AppDependencies:
-    artifact_store = S3ArtifactStore(settings)
+    artifact_store: ArtifactStore = (
+        LocalArtifactStore(settings)
+        if settings.artifact_store == "local"
+        else S3ArtifactStore(settings)
+    )
     run_model_use_case = RunModelUseCase(
         model_definition_registry,
         trainer_registry,

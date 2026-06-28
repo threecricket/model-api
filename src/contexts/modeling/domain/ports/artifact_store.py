@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Protocol
 
@@ -15,6 +15,7 @@ class ArtifactMetadata:
     metrics: dict[str, float]
     row_count: int
     trained_at: datetime
+    extra: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

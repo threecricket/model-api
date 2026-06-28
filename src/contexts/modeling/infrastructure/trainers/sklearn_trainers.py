@@ -44,7 +44,8 @@ class _SklearnTrainer:
         model.fit(X_train, y_train)
 
         metrics = self._compute_metrics(model, X_eval, y_eval)
-        return FitResult(artifact=model, metrics=metrics)
+        extra = self._extract_coefficients(model, options.get("feature_names"))
+        return FitResult(artifact=model, metrics=metrics, extra=extra)
 
     def predict(self, artifact: Any, X: np.ndarray) -> PredictResult:
         probabilities = None
@@ -68,6 +69,29 @@ class _SklearnTrainer:
 
     def deserialize(self, data: bytes) -> Any:
         return joblib.load(io.BytesIO(data))
+
+    @staticmethod
+    def _extract_coefficients(model: Any, feature_names: list[str] | None) -> dict:
+        if not hasattr(model, "coef_"):
+            return {}
+
+        rows = np.atleast_2d(np.asarray(model.coef_, dtype=float)).tolist()
+        intercept = np.atleast_1d(np.asarray(getattr(model, "intercept_", []), dtype=float)).tolist()
+
+        labeled = feature_names is not None and all(len(row) == len(feature_names) for row in rows)
+        if labeled:
+            coefficients: Any = (
+                dict(zip(feature_names, rows[0]))
+                if len(rows) == 1
+                else [dict(zip(feature_names, row)) for row in rows]
+            )
+        else:
+            coefficients = rows[0] if len(rows) == 1 else rows
+
+        return {
+            "coefficients": coefficients,
+            "intercept": intercept[0] if len(intercept) == 1 else intercept,
+        }
 
     def _compute_metrics(self, model: Any, X: np.ndarray, y: np.ndarray) -> dict[str, float]:
         predictions = model.predict(X)

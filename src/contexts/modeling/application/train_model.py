@@ -5,7 +5,7 @@ import numpy as np
 from contexts.features.application.build_feature_matrix import BuildFeatureMatrixUseCase
 from contexts.features.application.commands import TrainingFilter
 from contexts.modeling.application.commands import TrainModelCommand, TrainModelResult
-from contexts.modeling.domain.errors import EmptyTrainingDataError, ModelNotFoundError
+from contexts.modeling.domain.errors import ModelNotFoundError
 from contexts.modeling.domain.models.filter_key import FilterKey
 from contexts.modeling.domain.models.trained_model_ref import TrainedModelRef
 from contexts.modeling.domain.ports.artifact_store import ArtifactMetadata, ArtifactStore
@@ -45,13 +45,20 @@ class TrainModelUseCase:
         )
 
         if matrix.row_count == 0:
-            raise EmptyTrainingDataError()
+            return TrainModelResult(
+                model=definition.name,
+                filter_key=filter_key.value,
+                filters=filters,
+                rows_used=0,
+                trained=False,
+                message="No training rows matched the provided filters; no model was trained.",
+            )
 
         X = self._build_matrix(definition.features, matrix.features)
         y = self._build_target_vector(definition.target_features, matrix.targets)
 
         trainer = self._trainer_registry.require(definition.model_type)
-        fit_result = trainer.fit(X, y, options)
+        fit_result = trainer.fit(X, y, {**options, "feature_names": definition.features})
 
         trained_at = datetime.now(timezone.utc)
         metadata = ArtifactMetadata(
@@ -63,6 +70,7 @@ class TrainModelUseCase:
             metrics=fit_result.metrics,
             row_count=matrix.row_count,
             trained_at=trained_at,
+            extra=fit_result.extra,
         )
 
         artifact_bytes = trainer.serialize(fit_result.artifact)
@@ -72,8 +80,9 @@ class TrainModelUseCase:
             model=definition.name,
             filter_key=filter_key.value,
             filters=filters,
-            metrics=fit_result.metrics,
             rows_used=matrix.row_count,
+            trained=True,
+            metrics=fit_result.metrics,
             artifact_uri=artifact_uri,
         )
 

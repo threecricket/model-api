@@ -5,7 +5,6 @@ models:
       - current_innings_runs
       - current_innings_wickets
       - current_innings_legal_balls_remaining
-      - current_innings_target
       - current_innings_runs_required
     target_features:
       - batting_team_won
