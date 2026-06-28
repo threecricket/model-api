@@ -23,7 +23,7 @@ MODEL_DEFINITIONS_PATH = Path(__file__).resolve().parent / "contexts" / "modelin
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
-    engine = create_db_engine(settings.database_url)
+    engine = create_db_engine(settings.database_url, settings.db_schema)
     session_factory = create_session_factory(engine)
 
     feature_registry = FeatureRegistry.create_default()

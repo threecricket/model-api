@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 import numpy as np
@@ -8,6 +8,7 @@ import numpy as np
 class FitResult:
     artifact: Any
     metrics: dict[str, float]
+    extra: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -12,9 +12,11 @@ class TrainModelResult:
     model: str
     filter_key: str
     filters: dict
-    metrics: dict[str, float]
     rows_used: int
-    artifact_uri: str
+    trained: bool
+    metrics: dict[str, float] = field(default_factory=dict)
+    artifact_uri: str | None = None
+    message: str | None = None
 
 
 @dataclass(frozen=True)

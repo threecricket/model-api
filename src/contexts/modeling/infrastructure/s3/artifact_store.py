@@ -144,6 +144,7 @@ class S3ArtifactStore:
             "metrics": metadata.metrics,
             "row_count": metadata.row_count,
             "trained_at": metadata.trained_at.isoformat(),
+            "extra": metadata.extra,
         }
 
     @staticmethod
@@ -163,4 +164,5 @@ class S3ArtifactStore:
             metrics={key: float(value) for key, value in data.get("metrics", {}).items()},
             row_count=int(data.get("row_count", 0)),
             trained_at=trained_at,
+            extra=data.get("extra", {}),
         )

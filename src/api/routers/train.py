@@ -21,14 +21,17 @@ def train(
         TrainModelCommand(model_name=request.model, options=request.options),
     )
 
-    ref = TrainedModelRef(model_name=result.model, filter_key=FilterKey(result.filter_key))
-    deps.run_model_use_case.invalidate_cache(ref)
+    if result.trained:
+        ref = TrainedModelRef(model_name=result.model, filter_key=FilterKey(result.filter_key))
+        deps.run_model_use_case.invalidate_cache(ref)
 
     return TrainResponse(
         model=result.model,
         filter_key=result.filter_key,
         filters=result.filters,
-        metrics=result.metrics,
+        trained=result.trained,
         rows_used=result.rows_used,
+        metrics=result.metrics,
         artifact_uri=result.artifact_uri,
+        message=result.message,
     )

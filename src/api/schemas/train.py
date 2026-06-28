@@ -10,6 +10,8 @@ class TrainResponse(BaseModel):
     model: str
     filter_key: str
     filters: dict
-    metrics: dict[str, float]
+    trained: bool
     rows_used: int
-    artifact_uri: str
+    metrics: dict[str, float] = Field(default_factory=dict)
+    artifact_uri: str | None = None
+    message: str | None = None
